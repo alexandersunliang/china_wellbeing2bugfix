@@ -13,25 +13,21 @@ library(tidyverse)
 library(rstanarm)
 
 #### Read data ####
-analysis_data <- read_csv("data/analysis_data/analysis_data.csv")
+wvsdata <- read_parquet(here("data/analysis_data/analysis_data2018.parquet"))
 
-### Model data ####
-first_model <-
-  stan_glm(
-    formula = flying_time ~ length + width,
-    data = analysis_data,
-    family = gaussian(),
-    prior = normal(location = 0, scale = 2.5, autoscale = TRUE),
-    prior_intercept = normal(location = 0, scale = 2.5, autoscale = TRUE),
-    prior_aux = exponential(rate = 1, autoscale = TRUE),
-    seed = 853
-  )
-
-
-#### Save model ####
-saveRDS(
-  first_model,
-  file = "models/first_model.rds"
+happiness_model <- stan_glm(
+  Happiness ~ Government_Surveillance + Email_Monitoring + Information_Collection + National_Pride + age + Government_Responsibility,
+  data = wvsdata,
+  family = gaussian(),
+  prior = normal(0, 2.5),
+  prior_intercept = normal(0, 2.5),
+  prior_aux = exponential(1),
+  chains = 4,
+  iter = 2000,
+  seed = 123456,
+  refresh = 0
 )
 
+# Optionally, save your model for future use
+saveRDS(happiness_model, file = here::here("models/happiness_model.rds"))
 
