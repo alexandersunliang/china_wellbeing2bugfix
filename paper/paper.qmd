@@ -1,11 +1,11 @@
 ---
-title: "Pursuit of Happiness: The impact of growing Western criticism on Chinese Wellbeing"
+title: "Pursuit of Happiness: The impact of authoritarian government policies on Chinese well-being"
 author: 
   - Alexander Sun
 thanks: "Code and data are available at: https://github.com/alexandersunliang/china_wellbeing2bugfix.git"
 date: today
 date-format: long
-abstract: "In this study, we employed a multiple regression model to analyze the impact of government surveillance, email monitoring, information collection, national pride, and age on happiness levels using data from the World Values Survey. The findings indicate that higher levels of government surveillance and email monitoring are slightly negatively associated with happiness, whereas higher levels of national pride shows a strong positive relationship with happiness levels. Furthermore, age was positively correlated with happiness, suggesting that older individuals tend to report higher levels of well-being."
+abstract: "In this study, we employed a Bayesian regression model to analyze the impact of government surveillance, email monitoring, information collection, national pride, and age on happiness levels using data from the World Values Survey. The findings indicate that higher levels of government surveillance and email monitoring are slightly negatively associated with happiness, whereas higher levels of national pride shows a strong positive relationship with happiness levels. Furthermore, age was positively correlated with happiness, suggesting that older individuals tend to report higher levels of well-being. Our results illustrate how support for several authoritarian governmental policies may impact overall well-being in a socialist nation."
 format: pdf
 toc: true
 number-sections: true
@@ -30,9 +30,9 @@ wvsdata <- read_parquet(here("data/analysis_data/analysis_data2018.parquet"))
 
 # Introduction {#sec-intro}
 
-Since the early 1990s, China's economy has grown significantly, with an average annual GDP growth rate of around 10%. The 1990s market reforms aimed to control capitalism, showing that socialism could harness capitalist growth to increase national power. Today, China is a global economic leader, second only to the US in GDP; however, it is essential to assess how these changes affect societal well-being. Studies present mixed views on the effects of socialism and democracy. Cheung and Leung found that collectivism significantly impacts the well-being of the Chinese, whereas Hofstede (1980) observed that individualism encourages economic growth [@hofstede][@cheung]. Moore (2005) argued that the freedoms introduced in the 1980s led the Chinese towards a strong form of individualism, which starkly contrasts with the collectivist approach of the Cultural Revolution [@moore]. Steele and Lynch examined whether individualist or collectivist traits prevail in modern China and their impact on subjective well-being (SWB) [@steele]. They focused on how these orientations predict SWB and if their influence has shifted as China transitioned towards a market economy.
+Since the early 1990s, China's economy has grown significantly, with an average annual GDP growth rate of around 10%. The 1990s market reforms aimed to control capitalism, showing that socialism could harness capitalist growth to increase national power. Today, China is a global economic leader, second only to the US in GDP; however, it is essential to assess how these rapid changes affect societal well-being. Studies present mixed views on the effects of socialism and democracy. Cheung and Leung found that collectivism significantly impacts the well-being of the Chinese, whereas Hofstede (1980) observed that individualism encourages economic growth [@hofstede][@cheung]. Moore (2005) argued that the freedoms introduced in the 1980s led the Chinese towards a strong form of individualism, which starkly contrasts with the collectivist approach of the Cultural Revolution [@moore]. Our study will reassess a previous paper by Steele and Lynch, who examined whether individualist or collectivist traits prevail in modern China and their impact on subjective well-being (SWB) [@steele]. They focused on how these orientations predict SWB and if their influence has shifted as China transitioned towards a market economy.
 
-While Steele and Lynch researched the impacts of the reform, this paper will attempt to reframe their ideas with a focus on the recent developments in China. This study will extend Steele and Lynch’s previous research by examining the prevailing sentiments—individualist versus collectivist—in China in 2022 and their implications for SWB. We analyze whether and how the relationship between these cultural orientations and well-being has evolved in the context of China's continued economic and social transformations. 
+While Steele and Lynch researched the impacts of the reform, this paper will attempt to reframe their ideas with a focus on the recent developments in China. This study will extend Steele and Lynch’s previous research by examining the prevailing sentiments—individualist versus collectivist—in China in the past few years and their implications for SWB. We analyze whether the relationship between these cultural orientations and well-being has evolved in the context of China's continued economic and social transformations. 
 
 In this project, the estimand will be the difference in happiness level between each participant based on information like national pride, government support, and age.
 
@@ -42,7 +42,7 @@ The remainder of the paper is structured as follows: following in the introducti
 
 ## Data Source and Measurement
 
-To replicate the paper by Steele and Lynch, we obtained our data from the World Values Survey. While Steele and Lynch used time series data from three surveys (1990, 2001, 2007), we aim to look at more recent trends so we will include the World Values Survey data obtained from their 2018 wave. To be included into the survey dataset, countries must meet a minimum of 1200 entries. Since the survey is global, general guidelines are provided to the teams that are responsible for each country, but slight alterations in sampling method were permitted. The most common method of data collection consisted of face-to-face interviews with respondents at their home, and the answers were recorded on a paper questionnaire for later processing. For China, participants were chosen through probability sampling. The initial dataset contained 94278 responses and 606 variables, but after filtering for responses from China and removing non-responses, we are left with 3036 observations. Each wave of the survey is slightly different, so the wording of some questions and answers may vary. Although the sample for China was chosen through random sampling, survey guidelines dictated that there would be no replacement for non-responses. Therefore, missing data would have to be parsed out. 
+To continue our paper based on Steele and Lynch, we obtained our data from the World Values Survey. The World Values Survey is the largest non-commercial international investigation of human values ever executed. There are no other datasets of a similar size that target human beliefs and opinions. While Steele and Lynch used time series data from three surveys (1990, 2001, 2007), we aim to look at more recent trends so we will include the World Values Survey data obtained from their 2018 wave. To be included into the survey dataset, countries must meet a minimum of 1200 entries. Since the survey is global, general guidelines are provided to the teams that are responsible for each country, but slight alterations in sampling method were permitted. The most common method of data collection consisted of face-to-face interviews with respondents at their home, and the answers were recorded on a paper questionnaire for later processing. For China, participants were chosen through probability sampling. The initial dataset contained 94278 responses and 606 variables, but after filtering for responses from China and removing non-responses, we are left with 3036 observations. Each wave of the survey is slightly different, so the wording of some questions and answers may vary. Although the sample for China was chosen through random sampling, survey guidelines dictated that there would be no replacement for non-responses. Therefore, missing data had to be parsed out. 
 
 ## Variables
 
@@ -62,7 +62,7 @@ The original questionnaire was composed of approximately 300 questions, but for 
  
 ## Data Analysis
 
-Our investigation was conducted using the programming language R [@citeR], with the packages [@tidyverse], [@arrow], [@model], [@here], [@kable] and [@dplyr]. Techniques for some analysis methods were taken from [@rohan].
+Our investigation was conducted using the programming language R [@citeR], with the packages tidyverse [@tidyverse], arrow [@arrow], modelsummary [@model], here [@here], kable [@kable] and dplyr [@dplyr]. Techniques for some analysis methods were taken from Telling Stories with Data [@rohan].
 
 ```{r}
 #| echo: false
@@ -79,9 +79,9 @@ summary_stats <- data.frame(
 print(summary_stats)
 ```
 
-Initial observations of the summary statistics in the table above reveals that the mean happiness level is quite high, averaging to approximately 7.42 as opposed to the expected 5. Furthermore, we see that the median level of happiness is 8, significantly higher than expected. We also notice that national pride is very high, with a mean of 1.64. The interquartile range of 1-2 shows that vast majority of the populace are very proud of their status as Chinese citizens. The support for the various forms of government control seem middling, but it shows that the public is not vehemently opposed to these methods of surveillance. 
+Initial observations of the summary statistics in the table above reveals that the mean happiness level is quite high, averaging to approximately 7.42 as opposed to the expected 5. We also notice that national pride is very high, with a mean of 1.64. The interquartile range of 1-2 shows that vast majority of the populace are very proud of their status as Chinese citizens. The support for the various forms of government control seem middling, but it shows that the public is not vehemently opposed to these methods of surveillance. 
 
-We can also see the distribution for each of our variables in @fig-distgraphs: 
+The distribution for each of our variables is depicted in @fig-distgraphs: 
 
 ```{r}
 #| echo: false
@@ -131,7 +131,7 @@ do.call(grid.arrange, c(plot_list, ncol = 2))
 
 From the distribution graphs shown in @fig-distgraphs, we observe that barely any of the questions are normally distributed as we would expect for such a large sample. Although this could be attributed to the limited range of answers, we notice that even for questions with a larger range of responses like happiness and government responsibility, the data seems very skewed to one side. 
 
-Furthermore, the dataset provides information on how responses to question differ based off age. From this, we can depict how different age groups tend to respond to questions. For example, we expect the younger generation to be more progressive, leading to higher disapproval rates for government surveillance policies. Information on age distributions on support for government surveillance is shown in @fig-govsurvsup.
+Furthermore, the dataset provides information on how responses to question differ based off age. From this, we can visualize how different age groups tend to respond to questions. For example, we expect the younger generation to be more progressive, leading to higher disapproval rates for government surveillance policies. Information on age distributions on support for government surveillance is shown in @fig-govsurvsup.
 ```{r}
 #| echo: false
 #| warning: false
@@ -151,11 +151,11 @@ ggplot(wvsdata, aes(x = Age_Group, fill = as.factor(Government_Surveillance))) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
-Surprisingly, we see that as age increases, a higher proportion of adults in that age group are opposed to government surveillance in public areas. As the question asks about government surveillance in public areas, we can potentially infer citizens may oppose government email/information supervision as those are more private. However, as seen in @fig-compiled, we notice that the support for the collection of information for anybody in China is significantly higher than the other variables. 
+Surprisingly, we see that as age increases, a higher proportion of adults in that age group are opposed to government surveillance in public areas. As the question asks about government surveillance in public areas, we can potentially infer citizens may oppose government email/information supervision as those are more private. However, as seen in @fig-compiled, we notice that the support for the collection of information for anyone in China is significantly higher than the other variables. 
 
 # Model {#sec-model}
 
-The potential of using the World Values Survey data to predict happiness is based on the idea that certain key variables, such as attitudes towards governance and societal structures, are able to predict an individual’s level of happiness. Our model will hopefully be able to show how and if specific perceptions on government surveillance acceptance, email monitoring, and information collection are indicative of broader societal satisfaction.
+Using the World Values Survey data to predict happiness is based on the idea that certain key variables, such as attitudes towards governance and societal structures, are able to predict an individual’s level of happiness. Our model will hopefully be able to show how and if specific perceptions on government surveillance acceptance, email monitoring, and information collection are indicative of broader societal satisfaction.
 
 Before we develop our model, we have to assume that there is a linear relationship between our variables and happiness level. Research consistently indicates that the trust in, and perception of, governmental and societal systems significantly influences personal well-being [@putnam]. We postulate that individuals’ responses to questions about governance and privacy are not merely reflective of their current state but are shaped by their broader socio-political environment and personal experiences. Therefore, a person's level of happiness is not only a function of their immediate circumstances but also a reflection of their interactions with the societal and political structures they inhabit [@bjornskov].
 
@@ -169,8 +169,8 @@ Furthermore, cultural factors could moderate the relationship between governance
 Define $y_i$ as the estimated level of happiness. Then $\beta_0$ would be the estimated level of happiness given that all other variables are zero, $\beta_i$ would be the respective effects on estimated levels of happiness for each of our variables. The full model form is shown below:
 
 \begin{align} 
-y_i &= \beta_0 + \beta_1 \cdot \text{Gov Surveillance}_i + \beta_2 \cdot \text{Email Monitoring}_i + \beta_3 \cdot \text{Info Collection}_i
-+ \beta_4 \cdot \text{Age}_i + \beta_5 \cdot \text{National Pride}_i + \text{Government Responsibility}_i + \epsilon_i
+y_i &= \beta_0 + \beta_1 \cdot \text{Gov Surveillance}_i + \beta_2 \cdot \text{Email Monitoring}_i + \beta_3 \cdot \text{Info Collection}_i\\
++ \beta_4 \cdot \text{Age}_i + \beta_5 \cdot \text{Pride}_i + \text{Gov Responsibility}_i + \epsilon_i
 \end{align}
 
 We run the model in R [@citeR] using the `rstanarm` package of @rstanarm. We use the default priors from `rstanarm`.
@@ -251,11 +251,23 @@ As shown in our @sec-results section, we found that the initial baseline measure
 
 From our results, we see that even with growing discontentment towards China in the Western world, national pride and happiness levels seem to be unhindered and remain reasonably high. Yet, we also notice support for overreaching government policies with regards to surveillance and monitoring does not correlate with the high levels of national pride. Therefore, it is reasonable to conclude that although most Chinese citizens are very proud of their nationality, that does not necessarily correspond with support for the actions of the government. 
 
+## Ethical Considerations
+
+In conducting research that delves into personal beliefs and societal norms, such as happiness, national pride, and government surveillance acceptance, it is essential to consider ethical ramifications. The sensitive nature of questions related to government surveillance and monitoring requires careful deliberation. Collecting data on these topics might cause discomfort or fear among respondents, particularly in regions where government criticism is not tolerated openly. This necessitates stringent measures to ensure anonymity and confidentiality of the survey responses to protect participants from any possible repercussions.
+
+Moreover, given the potential for such research to influence public opinion and policy, it is crucial to handle data interpretation and dissemination with integrity. Researchers must be vigilant against biases in data analysis and reporting, striving for objectivity and transparency in their methodologies and findings. Acknowledging the limitations and subjective interpretations inherent in the study is also essential to prevent misrepresentation of the data and to maintain the trustworthiness of the research.
+
+Additionally, the study's potential impact on participants and broader societal implications should be considered. Research findings, particularly those that may portray certain groups in a negative light or suggest discontent with governmental policies, could have consequences if used inappropriately or taken out of context. As such, it is the responsibility of the researchers to ensure that the conclusions drawn are balanced, contextual, and do not contribute to stigmatization or discrimination against any group.
+
 ## Weaknesses and next steps
 
 With an R-squared value of 0.048, it seems that an incredibly small amount of variance is explained by our model. This is most likely due to omitted variable bias, where we neglected to include several other important factors when developing our regression model. Therefore, it is very likely that our chosen variables on support for government policies and/or national pride are not that significant in predicting overall happiness level. However, when considering the fact that the original questionnaire contained approximately 300 questions, it is to be expected that there would be a lot of unaccounted for variance in our data. Perhaps stronger expected indicators of overall happiness would consist marital status, annual income, and employment status. With regards to our model, we would likely get a more accurate regression by including more questions. However, due to the incredibly large amount of questions and responses, this could lead to overfitting. Although the adjusted R-squared value accounts partly for too many regressors, there is no feasible way to run a Bayesian regression model on all 300 questions. Therefore, future iterations of this study could look at combining several values into one. For example, support for government surveillance could be combined into one variable instead of three separate ones. Furthermore, questions that seem to have no impact on happiness level could also be ommitted by user discretion. 
 
-Future research may also consist of comparisons between different nations that partook in the World Values Survey. Specifically, comparisons for national pride and government support between communist and democratic countries may lead to interesting inferences on the societal beliefs for their respective nations. A heavier reliance on governmental structures in a communist society may lead to higher levels of national pride when compared to less reliant democratic nations. 
+Another source of error is the subjective nature of these variables, as they are deeply influenced by individual experiences, cultural contexts, and personal biases. These factors can affect both how questions are perceived by respondents and how their responses are interpreted by researchers. For instance, the concept of "national pride" may carry different connotations and importance in different cultural or political contexts, potentially skewing responses based on the respondent's background or current political climate. "Happiness" and current "life satisfaction" are also subjective measures and the same point value provided by two different respondents is likely to have different meanings for each of them. 
+
+Future research may consist of comparisons between different nations that partook in the World Values Survey. Specifically, comparisons for national pride and government support between communist and democratic countries may lead to interesting inferences on the societal beliefs for their respective nations. A heavier reliance on governmental structures in a communist society may lead to higher levels of national pride when compared to less reliant democratic nations. 
+
+Following Steele and Lynch's original research method, variations between waves of the World Values Survey may be dealt with by combining several responses into one variable. Although this leads to higher variance and may change end results, the value gained from analyzing temporal trends may outweigh these risks. With our original research goal in mind, the change in perception of China may be analyzed throughout the past two decades to determine if the rapid onset of anti-CCP material impacts citizen responses in any way. 
 
 \newpage
 
