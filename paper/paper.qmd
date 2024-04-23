@@ -1,0 +1,346 @@
+---
+title: "Pursuit of Happiness"
+subtitle: "The impact of growing Western criticism on Chinese Wellbeing"
+author: 
+  - Alexander Sun
+thanks: "Code and data are available at: https://github.com/alexandersunliang/china_wellbeing.git"
+date: today
+date-format: long
+abstract: "First sentence. Second sentence. Third sentence. Fourth sentence."
+format: pdf
+number-sections: true
+bibliography: references.bib
+---
+
+```{r}
+#| include: false
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(arrow)
+library(here)
+library(modelsummary)
+library(knitr)
+library(kableExtra)
+wvsdata <- read_parquet(here("data/analysis_data/analysis_data2018.parquet"))
+```
+
+
+# Introduction
+
+Since the early 1990s, China's economy has grown significantly, with an average annual GDP growth rate of around 10%. The 1990s market reforms aimed to control capitalism, showing that socialism could harness capitalist growth to increase national power. Today, China is a global economic leader, second only to the US in GDP; however, it is essential to assess how these changes affect societal well-being. Studies present mixed views on the effects of socialism and democracy. Cheung and Leung (2007) found that collectivism significantly impacts the well-being of the Chinese, whereas Hofstede (1980) observed that individualism encourages economic growth. Moore (2005) argued that the freedoms introduced in the 1980s led the Chinese towards a strong form of individualism, which starkly contrasts with the collectivist approach of the Cultural Revolution. Steele and Lynch examined whether individualist or collectivist traits prevail in modern China and their impact on subjective well-being (SWB). They focused on how these orientations predict SWB and if their influence has shifted as China transitioned towards a market economy.
+
+While Steele and Lynch researched the impacts of the reform, this paper will attempt to reframe their ideas with a focus on the impacts of COVID-19. This study will replicate and extend Steele and Lynch’s previous research by examining the prevailing sentiments—individualist versus collectivist—in China post-COVID-19 in 2022 and their implications for SWB. We analyze whether and how the relationship between these cultural orientations and well-being has evolved in the context of China's continued economic and social transformations.
+
+In this project, the estimand will be the difference in happiness level between each participant based on information like national pride, government support, and age.
+
+
+You can and should cross-reference sections and sub-sections. We use @citeR and @rohan.
+
+The remainder of this paper is structured as follows. @sec-data....
+
+# Data {#sec-data}
+
+## Data Source
+
+To replicate the paper by Steele and Lynch, we obtained our data from the World Values Survey. While Steele and Lynch used time series data from three surveys (1990, 2001, 2007), we aim to look at more recent trends so we will include the World Values Survey data obtained from their 2018 wave. To be included into the survey dataset, countries must meet a minimum of 1200 entries. Since the survey is global, general guidelines are provided to the teams that are responsible for each country, but slight alterations in sampling method were permitted. The most common method of data collection consisted of face-to-face interviews with respondents at their home, and the answers were recorded on a paper questionnaire for later processing. For China, participants were chosen through probability sampling. The initial dataset contained 94278 responses and 606 variables, but after filtering for responses from China and removing non-responses, we are left with 3036 observations. Each wave of the survey is slightly different, so the wording of some questions and answers may vary. 
+
+## Variables
+
+The original questionnaire was composed of approximately 300 questions, but for the purposes of our study we will focus on the following:
+
+ - **Happiness**: Our dependent variable was measured as "life satisfaction" in the questionnaire. Participants responded with how happy they were with their current lifestyle on a scale of 1-10 with 1 being "completely dissatisfied" and 10 being "completely satisfied". We will later conduct a model to estimate this value based off our other regressors.
+
+ - **National Pride**: Respondents were asked about their national pride with the question, "How proud are you to be Chinese?" We believe that this is especially important as it allows us to see temporal trends in nationalism with regards to increasing Western criticism. 
+ 
+ - **Government Surveillance in Public Areas**: This question asks if participants believe that the government has the right to surveil the populace in public areas. As this is one of the largest criticisms against the modern Chinese government, we can potentially see impacts of this variable with respect to life satisfaction for citizens. This variable is recorded on a scale of 1-4, with one being "Definitely should not have the right" and four being "Definitely should have the right"
+ 
+ - **The Right for the Government to Monitor Emails**: This variable measures population sentiment for the governments ability to monitor private emails. While the last variable evaluated opinions on surveillance in public areas, this one angles more towards public sentiment on the collection of private information. This was also recorded on a scale of 1-4, with one being "Definitely should not have the right" and four being "Definitely should have the right".
+ 
+ - **Should the Government Take More Responsibility to Ensure Everyone is Provided For?**: As the divide between communist and democratic ideals grow, this question will provide insight into the collectivist support among the general public in China. Although not a perfect capture of sentiment towards communism, this is the closest question that was able to be asked on the survey without running into political issues. This was recorded on a scale of 1-10, with one being the respondent completely agrees with the question and ten being the respondent completely disagrees.
+ 
+ - **Age**: With the onset of social media, especially TikTok/Douyin, Chinese citizens are being exposed to more Western media than ever before. By measuring age, we can see if specific generations are more progressive than others. The World Values Survey limits the age of its participants to between 18 and 70.
+ 
+## Data Analysis
+
+Our investigation was conducted using the programming language R [@citeR], with the packages [@tidyverse], and [@dplyr]
+
+Although each of the variables have a different scale, the summary statistics of the current dataset can be seen in @summary
+
+```{r}
+#| echo: false
+#| label: summary
+#| fig-cap: Summary Statistics for World Values Survey 2018
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(tidyr)
+
+variables_of_interest <- c("National_Pride", "Happiness", "Government_Surveillance", 
+                           "Email_Monitoring", "Information_Collection", 
+                           "Government_Responsibility", "age")
+
+# Calculate the summary statistics for the selected variables with rounding
+summary_stats <- wvsdata %>%
+  summarise(across(all_of(variables_of_interest), list(
+    Mean = ~round(mean(.x, na.rm = TRUE), 2),
+    SD = ~round(sd(.x, na.rm = TRUE), 2),
+    Median = ~median(.x, na.rm = TRUE),
+    Q1 = ~quantile(.x, probs = 0.25, na.rm = TRUE),
+    Q3 = ~quantile(.x, probs = 0.75, na.rm = TRUE),
+    Min = ~min(.x, na.rm = TRUE),
+    Max = ~max(.x, na.rm = TRUE)
+  ), .names = "{.col}_{.fn}"))
+
+# Reshape the data frame to a long format and then to a wide format
+summary_stats_long <- summary_stats %>%
+  pivot_longer(cols = everything(), names_to = c("Variable", "Statistic"), names_pattern = "(.+)_(Mean|SD|Median|Q1|Q3|Min|Max)")
+
+summary_stats_wide <- summary_stats_long %>%
+  pivot_wider(names_from = Statistic, values_from = value)
+
+# Create the summary table using kable for PDF output
+summary_table <- kable(summary_stats_wide, format = "latex", booktabs = TRUE, 
+                       caption = "Descriptive Statistics for Selected Variables") %>%
+  row_spec(0, bold = TRUE)  # Make the header row bold
+
+# Print the table
+summary_table
+```
+
+\newpage
+ 
+Initial observations of the summary statistics reveal that the mean happiness level is quite high, averaging to approximately 7.42 as opposed to the expected 5. Furthermore, we see that the median level of happiness is 8, significantly higher than expected. We also notice that national pride is very high, with a mean of 1.64. The interquartile range of 1-2 shows that vast majority of the populace are very proud of their status as Chinese citizens. The support for the various forms of government control seem middling, but it shows that the public is not vehemently opposed to these methods of surveillance. 
+
+We can also see the distribution for each of our variables in the following graphs: 
+
+```{r}
+#| echo: false
+#| label: distgraphs
+#| fig-cap: Assorted Variable Distributions
+#| warning: false
+#| fig.height: 7
+
+library(ggplot2)
+library(gridExtra)
+
+# Create a list to hold the ggplot objects
+plot_list <- list()
+
+plot_list[['National Pride']] <- ggplot(wvsdata, aes(x = National_Pride)) + 
+      geom_histogram(bins = 5, fill = "blue") + 
+      labs(title = "National Pride", x = "Responses (1-5)", y = "Count")
+
+plot_list[['Happiness']] <- ggplot(wvsdata, aes(x = Happiness)) + 
+      geom_histogram(bins = 10, fill = "red") + 
+      labs(title = "Happiness", x = "Responses (1-10)", y = "Count")
+
+plot_list[['Government Surveillance']] <- ggplot(wvsdata, aes(x = Government_Surveillance)) + 
+      geom_histogram(bins = 4, fill = "green") + 
+      labs(title = "Surveillance Support", x = "Responses (1-4)", y = "Count")
+
+plot_list[['Email Monitoring']] <- ggplot(wvsdata, aes(x = Email_Monitoring)) + 
+      geom_histogram(bins = 4, fill = "orange") + 
+      labs(title = "Email Monitoring", x = "Responses (1-4)", y = "Count")
+
+plot_list[['Information Collection']] <- ggplot(wvsdata, aes(x = Information_Collection)) + 
+      geom_histogram(bins = 4, fill = "purple") + 
+      labs(title = "Information Collection", x = "Responses (1-4)", y = "Count")
+
+plot_list[['Government Responsibility']] <- ggplot(wvsdata, aes(x = Government_Responsibility)) + 
+      geom_histogram(bins = 4, fill = "brown") + 
+      labs(title = "Government Responsibility", x = "Responses (1-10)", y = "Count")
+
+plot_list[['Age']] <- ggplot(wvsdata, aes(x = age)) + 
+      geom_histogram(bins = 52, fill = "cyan") + 
+      labs(title = "Age", x = "Age", y = "Count")
+
+# Arrange the plots into a grid with 2 columns
+do.call(grid.arrange, c(plot_list, ncol = 2))
+
+```
+
+From the distribution graphs shown in @distgraphs, we observe that barely any of the questions are normally distributed as we would expect for such a large sample. Although this could be attributed to the limited range of answers, we notice that even for questions with a larger range of responses like happiness and government responsibility, the data seems very skewed to one side. 
+
+Furthermore, the dataset provides information on how responses to question differ based off age. From this, we can depict how different age groups tend to respond to questions. For example, we expect the younger generation to be more progressive, leading to higher disapproval rates for government surveillance policies. 
+```{r}
+#| echo: false
+#| warning: false
+#| fig-cap: "Support for Government Surveillance Between Ages"
+#| label: govsurvsup
+wvsdata <- wvsdata %>%
+  mutate(Age_Group = cut(age, 
+                         breaks = c(18, 25, 35, 45, 55, 65, Inf),
+                         labels = c("18-25", "26-35", "36-45", "46-55", "56-65", "66+"),
+                         include.lowest = TRUE))
+ggplot(wvsdata, aes(x = Age_Group, fill = as.factor(Government_Surveillance))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Government Surveillance Support by Age Group",
+       x = "Age Group",
+       y = "Count",
+       fill = "Gov. Surveillance\nSupport Level") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Surprisingly, we see that as age increases, a higher proportion of adults in that age group are opposed to government surveillance in public areas. As the question asks about government surveillance in public areas, we can potentially infer citizens may oppose government email/information supervision as those are more private. However, as seen in @compiled, we notice that the support for the collection of information for anybody in China is significantly higher than the other variables. 
+
+
+
+# Model
+
+The potential of using the World Values Survey data to predict happiness is based on the idea that certain key variables, such as attitudes towards governance and societal structures, are able to predict an individual’s level of happiness. Our model will hopefully be able to show how and if specific perceptions on government surveillance acceptance, email monitoring, and information collection are indicative of broader societal satisfaction.
+
+Before we develop our model, we have to assume that there is a relationship between our variables and happiness level. Research consistently indicates that the trust in, and perception of, governmental and societal systems significantly influences personal well-being (Helliwell & Putnam, 2004). We postulate that individuals’ responses to questions about governance and privacy are not merely reflective of their current state but are shaped by their broader socio-political environment and personal experiences. Therefore, a person's level of happiness is not only a function of their immediate circumstances but also a reflection of their interactions with the societal and political structures they inhabit (Bjørnskov, 2006).
+
+To assess the validity and strength of these relationships, it is crucial to consider confounding factors that may be related to both the predictors and happiness. For instance, demographic variables such as age may influence both a person's perception of governance and their reported level of happiness. Older individuals may have different views on privacy and security, and simultaneously, their happiness levels might be affected by a host of age-related factors, making age a potential confounder that needs to be accounted for in our model.
+
+Furthermore, cultural factors could moderate the relationship between governance attitudes and happiness. For example, in societies where collective well-being is emphasized, the acceptance of surveillance measures might correlate differently with happiness compared to societies that prioritize individual autonomy (Oishi, Diener, & Lucas, 2007). 
+
+
+## Model set-up
+
+Define $y_i$ as the estimated level of happiness. Then $\beta_0$ would be the estimated level of happiness given that all other variables are zero, $\beta_i$ would be the respective effects on estimated levels of happiness for each of our variables. The full model form is shown below:
+
+\begin{align} 
+y_i &= \beta_0 + \beta_1 \cdot \text{Gov Surveillance}_i + \beta_2 \cdot \text{Email Monitoring}_i + \beta_3 \cdot \text{Info Collection}_i + \beta_4 \cdot \text{Age}_i + \beta_5 \cdot \text{National Pride}_i + \text{Government Responsibility}_i + \epsilon_i
+\end{align}
+
+We run the model in R [@citeR] using the `rstanarm` package of @rstanarm. We use the default priors from `rstanarm`.
+
+
+### Model justification
+
+In our study, we employ a multiple regression model to predict happiness levels using the World Values Survey data. Given that happiness is influenced by a diverse range of factors, a model that can handle multiple regressors is critical in understanding the relationship with variables such as government surveillance acceptance, email monitoring acceptance, information collection acceptance, and happiness. Furthermore, the model allows us to isolate the unique contributions of each predictor to happiness. 
+
+Our large sample size—approximately 3000 respondents—strengthens the model further. A robust sample size ensures that our parameter estimates are reliable and reduces the likelihood of statistical errors. It also increases the generalizability of our findings, ensuring that our conclusions are not just applicable to a narrow subset of the population but can be extended to China as a whole. Additionally, a larger dataset supports the complexity of our model, allowing us to include multiple predictors without the risk of overfitting, thereby maintaining the model’s integrity and robustness. The overall statistical significance of our test will be examined further later in this study.
+
+
+# Results
+
+Our results are summarized in @tbl-modelresults.
+
+```{r}
+#| echo: false
+#| eval: true
+#| warning: false
+#| message: false
+
+library(rstanarm)
+
+# Assuming your data frame is named 'wvsdata' and is properly formatted:
+happiness_model <- stan_glm(
+  Happiness ~ Government_Surveillance + Email_Monitoring + Information_Collection + National_Pride + age + Government_Responsibility,
+  data = wvsdata,
+  family = gaussian(),
+  prior = normal(0, 2.5),
+  prior_intercept = normal(0, 2.5),
+  prior_aux = exponential(1),
+  chains = 4,
+  iter = 2000,
+  seed = 123456,
+  refresh = 0
+)
+
+# Optionally, save your model for future use
+saveRDS(happiness_model, file = here::here("models/happiness_model.rds"))
+```
+
+```{r}
+#| echo: false
+#| eval: true
+#| label: tbl-modelresults
+#| tbl-cap: "Regression Model Results for Predicting Happiness Based on Government Perceptions and Age"
+#| warning: false
+
+library(modelsummary)
+
+modelsummary::modelsummary(
+  list(
+    "Happiness Model" = happiness_model
+  ),
+  statistic = "mad",  
+  fmt = 2  
+)
+```
+The regression analysis presented in Table 2 reveals an expected baseline happiness level of 7.60, as indicated by the model's intercept. This suggests a generally positive baseline level of happiness among respondents when all other variables are held constant. The coefficients for Government_Surveillance, Email_Monitoring, and Information_Collection are slightly negative, at -0.06, -0.01, and -0.01 respectively, suggesting a marginal decrease in happiness scores associated with increased acceptance of these governance measures. Notably, National_Pride shows a notably stronger negative association with happiness, with a coefficient of -0.50, indicating a significant decrease in happiness as national pride increases. In contrast, the age coefficient of 0.02 suggests a slight increase in happiness with age.
+
+The model accounts for a modest 4.8% of the variance in happiness scores, as reflected by an R-squared value of 0.048, implying that other unexamined factors may play a more substantial role in influencing happiness. The adjusted R-squared value, at 0.043, indicates a minimal increase in explanatory power when accounting for the number of predictors. Furthermore, the Root Mean Square Error (RMSE) of 1.98 points to the model's prediction errors' standard deviation, signifying potential areas for model refinement. These results provide a statistical basis for the model's performance, emphasizing the nuanced challenge of predicting subjective well-being through perceived governance and age.
+```{r}
+#| echo: false
+#| eval: true
+#| warning: false
+#| label: checks
+#| fig-cap: "Happiness Model Checks"
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
+
+ppc_dens_overlay(y = wvsdata$Happiness, yrep = posterior_predict(happiness_model))
+
+mcmc_trace(
+  as.array(happiness_model),
+  pars = c("(Intercept)", "Government_Surveillance", "Email_Monitoring", "Information_Collection", "National_Pride", "age", "Government_Responsibility")
+)
+```
+The posterior predictive check, visualized by the ppc_dens_overlay plot, helps us evaluate the fit of our Bayesian model. By overlapping the observed happiness data with the simulated posterior predictive values, this plot illustrates how well our model reproduces the observed outcomes. The congruence between the values signifies that the model adequately captures the central tendency and variability of the actual happiness scores. Notably, if there are significant deviations it could indicate that the model may not fully account for the data's characteristics, prompting us to consider model refinements or additional predictors.
+
+The trace plot provides a representation of the Markov Chain Monte Carlo (MCMC) sampling process, essential for evaluating the convergence of the chains. Each parameter's trace, represented by individual lines for each chain, should display a "mixing" behavior, converging to and fluctuating around a common value, without exhibiting trends or periodicity. Such patterns indicate that the chains have reached a stationary distribution, and the samples drawn are likely from the true posterior distribution. If the chains do not converge, this implies that the sampling process has not yet adequately captured the full behaviour of the true distribution, and further iterations or model adjustments may be required to ensure reliable inference.
+
+# Discussion
+
+## Model Findings {#sec-first-point}
+
+As shown in our results section, we found that the initial baseline measure for happiness in China was quite high, at a predicted level of 7.60 given all other variables are at zero. We discover that our results disagree with Helliwell and Putnam's (2004) findings where belief in government policies are positively correlated with well-being. Our model suggests that an increase in support for any of the three policies correlates with a slight decrease in overall happiness level. However, we find that although national pride is negatively correlated with our measure of happiness, once we factor in that national pride is measured on a scale of 1-5 with 1 being the highest, we realize that national pride is the largest indicator of happiness out of our chosen variables. This could be because we are exclusively looking at a population of Chinese citizens. It is expected that residents and citizens that do not pride themselves in being Chinese are generally less happy while they are living there. Furthermore, we see a very slight positive coefficient for our age variable, suggesting that as Chinese citizens grow, they become more satisfied with their life. This could be potentially attributed to the stressful career and educational lifestyle of China. With a culture of overworking compounded with the pressure of the Gaokao, young citizens may experience lower levels of overall happiness compared to the older generation. 
+
+From our results, we see that even with growing discontentment towards China in the Western world, national pride and happiness levels seem to be unhindered and remain reasonably high. Yet, we also notice support for overreaching government policies with regards to surveillance and monitoring does not correlate with the high levels of national pride. Therefore, it is reasonable to conclude that although most Chinese citizens are very proud of their nationality, that does not necessarily correspond with support for the actions of the government. 
+
+## Weaknesses and next steps
+
+With an R-squared value of 0.048, it seems that an incredibly small amount of variance is explained by our model. This is most likely due to omitted variable bias, where we neglected to include several other important factors when developing our regression model. Therefore, it is very likely that our chosen variables on support for government policies and/or national pride are not that significant in predicting overall happiness level. However, when considering the fact that the original questionnaire contained approximately 300 questions, it is to be expected that there would be a lot of unaccounted for variance in our data. Perhaps stronger expected indicators of overall happiness would consist marital status, annual income, and employment status. With regards to our model, we would likely get a more accurate regression by including more questions. However, due to the incredibly large amount of questions and responses, this could lead to overfitting. Although The R^2 value accounts partly for too many regressors, there is no feasible way to run a Bayesian regression model on all 300 questions. Therefore, future iterations of this study could look at combining several values into one. For example, support for government surveillance could be combined into one variable instead of three separate ones. Furthermore, questions that seem to have no impact on happiness level could also be ommitted by user discretion. 
+
+Future research may also consist of comparisons between different nations that partook in the World Values Survey. Specifically, comparisons for national pride and government support between communist and democratic countries may lead to interesting inferences on the societal beliefs for their respective nations. A heavier reliance on governmental structures in a communist society may lead to higher levels of national pride when compared to less reliant democratic nations. 
+
+\newpage
+
+\appendix
+
+# Appendix {-}
+
+
+# Additional data details
+```{r}
+#| echo: false
+#| warning: false
+#| fig-cap: "Support for Surveillance, Email Monitoring, and Information Collection by Age Group"
+#| label: compiled
+#| fig.width: 6
+library(ggplot2)
+library(dplyr)
+
+long_data <- wvsdata %>%
+  select(Age_Group, Government_Surveillance, Email_Monitoring, Information_Collection, National_Pride, Government_Responsibility) %>%
+  pivot_longer(cols = c(Government_Surveillance, Email_Monitoring, Information_Collection, National_Pride, Government_Responsibility), 
+               names_to = "Variable", values_to = "Value")
+
+# Plotting the responses for Government_Surveillance, Email_Monitoring, Information_Collection, and National Pride across different age groups
+ggplot(long_data, aes(x = Age_Group, fill = as.factor(Value))) +
+  geom_bar(position = "dodge") +
+  facet_wrap(~ Variable, scales = "free_y") +  # Allows each facet to independently scale the y-axis
+  scale_fill_brewer(palette = "Set2") +  # Using the "Set2" color palette for better aesthetics
+  labs(title = "Support for Surveillance, Email Monitoring, Information Collection, Government Responsibility, and National Pride by Age Group",
+       x = "Age Group",
+       y = "Count",
+       fill = "Response Level") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        strip.text = element_text(size = 8))
+```
+
+
+\newpage
+
+
+# References
+
+
