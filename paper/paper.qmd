@@ -23,15 +23,16 @@ library(here)
 library(modelsummary)
 library(knitr)
 library(kableExtra)
+library(dplyr)
 wvsdata <- read_parquet(here("data/analysis_data/analysis_data2018.parquet"))
 ```
 
 
 # Introduction {#sec-intro}
 
-Since the early 1990s, China's economy has grown significantly, with an average annual GDP growth rate of around 10%. The 1990s market reforms aimed to control capitalism, showing that socialism could harness capitalist growth to increase national power. Today, China is a global economic leader, second only to the US in GDP; however, it is essential to assess how these changes affect societal well-being. Studies present mixed views on the effects of socialism and democracy. Cheung and Leung (2007) found that collectivism significantly impacts the well-being of the Chinese, whereas Hofstede (1980) observed that individualism encourages economic growth. Moore (2005) argued that the freedoms introduced in the 1980s led the Chinese towards a strong form of individualism, which starkly contrasts with the collectivist approach of the Cultural Revolution. Steele and Lynch examined whether individualist or collectivist traits prevail in modern China and their impact on subjective well-being (SWB). They focused on how these orientations predict SWB and if their influence has shifted as China transitioned towards a market economy.
+Since the early 1990s, China's economy has grown significantly, with an average annual GDP growth rate of around 10%. The 1990s market reforms aimed to control capitalism, showing that socialism could harness capitalist growth to increase national power. Today, China is a global economic leader, second only to the US in GDP; however, it is essential to assess how these changes affect societal well-being. Studies present mixed views on the effects of socialism and democracy. Cheung and Leung found that collectivism significantly impacts the well-being of the Chinese, whereas Hofstede (1980) observed that individualism encourages economic growth [@hofstede][@cheung]. Moore (2005) argued that the freedoms introduced in the 1980s led the Chinese towards a strong form of individualism, which starkly contrasts with the collectivist approach of the Cultural Revolution [@moore]. Steele and Lynch examined whether individualist or collectivist traits prevail in modern China and their impact on subjective well-being (SWB) [@steele]. They focused on how these orientations predict SWB and if their influence has shifted as China transitioned towards a market economy.
 
-While Steele and Lynch researched the impacts of the reform, this paper will attempt to reframe their ideas with a focus on the impacts of COVID-19. This study will replicate and extend Steele and Lynch’s previous research by examining the prevailing sentiments—individualist versus collectivist—in China post-COVID-19 in 2022 and their implications for SWB. We analyze whether and how the relationship between these cultural orientations and well-being has evolved in the context of China's continued economic and social transformations.
+While Steele and Lynch researched the impacts of the reform, this paper will attempt to reframe their ideas with a focus on the recent developments in China. This study will extend Steele and Lynch’s previous research by examining the prevailing sentiments—individualist versus collectivist—in China in 2022 and their implications for SWB. We analyze whether and how the relationship between these cultural orientations and well-being has evolved in the context of China's continued economic and social transformations. 
 
 In this project, the estimand will be the difference in happiness level between each participant based on information like national pride, government support, and age.
 
@@ -61,41 +62,24 @@ The original questionnaire was composed of approximately 300 questions, but for 
  
 ## Data Analysis
 
-Our investigation was conducted using the programming language R [@citeR], with the packages [@tidyverse], and [@dplyr]
-
-Although each of the variables have a different scale, the summary statistics of the current dataset can be seen in @fig-summary
+Our investigation was conducted using the programming language R [@citeR], with the packages [@tidyverse], [@arrow], [@model], [@here], [@kable] and [@dplyr]. Techniques for some analysis methods were taken from [@rohan].
 
 ```{r}
 #| echo: false
-#| label: fig-summary
-#| fig-cap: Summary Statistics for World Values Survey
-variables_of_interest <- c("National_Pride", "Happiness", "Government_Surveillance", 
-                           "Email_Monitoring", "Information_Collection", 
-                           "Government_Responsibility", "age")
+#| cap: "Summary Statistics for World Values Survey"
+summary_stats <- data.frame(
+  Mean = round(apply(wvsdata, 2, mean, na.rm = TRUE), 2),   # Calculate mean, ignoring NA values and round to 2 decimals
+  StdDev = round(apply(wvsdata, 2, sd, na.rm = TRUE), 2),   # Calculate standard deviation, ignoring NA values and round to 2 decimals
+  Min = round(apply(wvsdata, 2, min, na.rm = TRUE), 2),     # Calculate minimum, ignoring NA values and round to 2 decimals
+  Max = round(apply(wvsdata, 2, max, na.rm = TRUE), 2),     # Calculate maximum, ignoring NA values and round to 2 decimals
+  IQR = round(apply(wvsdata, 2, IQR, na.rm = TRUE), 2)      # Calculate interquartile range, ignoring NA values and round to 2 decimals
+)
 
-summary_stats <- wvsdata %>%
-  summarise(across(all_of(variables_of_interest), list(
-    Mean = ~round(mean(.x, na.rm = TRUE), 2),
-    SD = ~round(sd(.x, na.rm = TRUE), 2),
-    Median = ~median(.x, na.rm = TRUE),
-    Q1 = ~quantile(.x, probs = 0.25, na.rm = TRUE),
-    Q3 = ~quantile(.x, probs = 0.75, na.rm = TRUE),
-    Min = ~min(.x, na.rm = TRUE),
-    Max = ~max(.x, na.rm = TRUE)
-  ), .names = "{.col}_{.fn}"))
-
-summary_stats_long <- summary_stats %>%
-  pivot_longer(
-    cols = everything(),
-    names_to = c("Variable", "Statistic"),
-    names_pattern = "(.+)_(.+)"
-  )
-
-# Check the output
-print(summary_stats_long)
+# Print the summary statistics table
+print(summary_stats)
 ```
 
-Initial observations of the summary statistics reveal that the mean happiness level is quite high, averaging to approximately 7.42 as opposed to the expected 5. Furthermore, we see that the median level of happiness is 8, significantly higher than expected. We also notice that national pride is very high, with a mean of 1.64. The interquartile range of 1-2 shows that vast majority of the populace are very proud of their status as Chinese citizens. The support for the various forms of government control seem middling, but it shows that the public is not vehemently opposed to these methods of surveillance. 
+Initial observations of the summary statistics in the table above reveals that the mean happiness level is quite high, averaging to approximately 7.42 as opposed to the expected 5. Furthermore, we see that the median level of happiness is 8, significantly higher than expected. We also notice that national pride is very high, with a mean of 1.64. The interquartile range of 1-2 shows that vast majority of the populace are very proud of their status as Chinese citizens. The support for the various forms of government control seem middling, but it shows that the public is not vehemently opposed to these methods of surveillance. 
 
 We can also see the distribution for each of our variables in @fig-distgraphs: 
 
@@ -173,11 +157,11 @@ Surprisingly, we see that as age increases, a higher proportion of adults in tha
 
 The potential of using the World Values Survey data to predict happiness is based on the idea that certain key variables, such as attitudes towards governance and societal structures, are able to predict an individual’s level of happiness. Our model will hopefully be able to show how and if specific perceptions on government surveillance acceptance, email monitoring, and information collection are indicative of broader societal satisfaction.
 
-Before we develop our model, we have to assume that there is a relationship between our variables and happiness level. Research consistently indicates that the trust in, and perception of, governmental and societal systems significantly influences personal well-being (Helliwell & Putnam, 2004). We postulate that individuals’ responses to questions about governance and privacy are not merely reflective of their current state but are shaped by their broader socio-political environment and personal experiences. Therefore, a person's level of happiness is not only a function of their immediate circumstances but also a reflection of their interactions with the societal and political structures they inhabit (Bjørnskov, 2006).
+Before we develop our model, we have to assume that there is a linear relationship between our variables and happiness level. Research consistently indicates that the trust in, and perception of, governmental and societal systems significantly influences personal well-being [@putnam]. We postulate that individuals’ responses to questions about governance and privacy are not merely reflective of their current state but are shaped by their broader socio-political environment and personal experiences. Therefore, a person's level of happiness is not only a function of their immediate circumstances but also a reflection of their interactions with the societal and political structures they inhabit [@bjornskov].
 
 To assess the validity and strength of these relationships, it is crucial to consider confounding factors that may be related to both the predictors and happiness. For instance, demographic variables such as age may influence both a person's perception of governance and their reported level of happiness. Older individuals may have different views on privacy and security, and simultaneously, their happiness levels might be affected by a host of age-related factors, making age a potential confounder that needs to be accounted for in our model.
 
-Furthermore, cultural factors could moderate the relationship between governance attitudes and happiness. For example, in societies where collective well-being is emphasized, the acceptance of surveillance measures might correlate differently with happiness compared to societies that prioritize individual autonomy (Oishi, Diener, & Lucas, 2007). We expect that the effects for the government policies and age to be positive, while national pride is negative. 
+Furthermore, cultural factors could moderate the relationship between governance attitudes and happiness. For example, in societies where collective well-being is emphasized, the acceptance of surveillance measures might correlate differently with happiness compared to societies that prioritize individual autonomy [@lucas]. We expect that the effects for the government policies and age to be positive, while national pride is negative. 
 
 
 ## Model set-up
@@ -185,7 +169,8 @@ Furthermore, cultural factors could moderate the relationship between governance
 Define $y_i$ as the estimated level of happiness. Then $\beta_0$ would be the estimated level of happiness given that all other variables are zero, $\beta_i$ would be the respective effects on estimated levels of happiness for each of our variables. The full model form is shown below:
 
 \begin{align} 
-y_i &= \beta_0 + \beta_1 \cdot \text{Gov Surveillance}_i + \beta_2 \cdot \text{Email Monitoring}_i + \beta_3 \cdot \text{Info Collection}_i + \beta_4 \cdot \text{Age}_i + \beta_5 \cdot \text{National Pride}_i + \text{Government Responsibility}_i + \epsilon_i
+y_i &= \beta_0 + \beta_1 \cdot \text{Gov Surveillance}_i + \beta_2 \cdot \text{Email Monitoring}_i + \beta_3 \cdot \text{Info Collection}_i
++ \beta_4 \cdot \text{Age}_i + \beta_5 \cdot \text{National Pride}_i + \text{Government Responsibility}_i + \epsilon_i
 \end{align}
 
 We run the model in R [@citeR] using the `rstanarm` package of @rstanarm. We use the default priors from `rstanarm`.
@@ -193,9 +178,9 @@ We run the model in R [@citeR] using the `rstanarm` package of @rstanarm. We use
 
 ## Model justification
 
-In our study, we employ a multiple regression model to predict happiness levels using the World Values Survey data. Given that happiness is influenced by a diverse range of factors, a model that can handle multiple regressors is critical in understanding the relationship with variables such as government surveillance acceptance, email monitoring acceptance, information collection acceptance, and happiness. Furthermore, the model allows us to isolate the unique contributions of each predictor to happiness. 
+In our study, we employ a Bayesian regression model to predict happiness levels using the World Values Survey data. Given that happiness is influenced by a diverse range of factors, a model that can handle multiple regressors is critical in understanding the relationship with variables such as government surveillance acceptance, email monitoring acceptance, information collection acceptance, and happiness. Furthermore, the model allows us to isolate the unique contributions of each predictor to happiness. We specifically chose a Bayesian regression model as opposed to other forms of regression, such as a Poisson. This is because a Poisson regression assumes that the variance of the dependent variable is equal to its mean, which restricts its application to data where this condition naturally holds. From our summary statistics in @sec-data, we see that this assumption does not hold.
 
-Our large sample size—approximately 3000 respondents—strengthens the model further. A robust sample size ensures that our parameter estimates are reliable and reduces the likelihood of statistical errors. It also increases the generalizability of our findings, ensuring that our conclusions are not just applicable to a narrow subset of the population but can be extended to China as a whole. Additionally, a larger dataset supports the complexity of our model, allowing us to include multiple predictors without the risk of overfitting, thereby maintaining the model’s integrity and robustness. The overall statistical significance of our test will be examined further later in this study.
+Our large sample size—approximately 3000 respondents—strengthens the model further. A robust sample size ensures that our parameter estimates are reliable and reduces the likelihood of statistical errors. It also increases the generalizability of our findings, ensuring that our conclusions are not just applicable to a narrow subset of the population but can be extended to China as a whole. Additionally, a larger dataset supports the complexity of our model, allowing us to include multiple predictors without the risk of overfitting, thereby maintaining the model’s integrity and robustness. The overall statistical significance of our test will be examined further later in this study. 
 
 
 # Results {#sec-results}
