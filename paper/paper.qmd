@@ -5,7 +5,7 @@ author:
 thanks: "Code and data are available at: https://github.com/alexandersunliang/china_wellbeing2bugfix.git"
 date: today
 date-format: long
-abstract: "First sentence. Second sentence. Third sentence. Fourth sentence."
+abstract: "In this study, we employed a multiple regression model to analyze the impact of government surveillance, email monitoring, information collection, national pride, and age on happiness levels using data from the World Values Survey. The findings indicate that higher levels of government surveillance and email monitoring are slightly negatively associated with happiness, whereas higher levels of national pride shows a strong positive relationship with happiness levels. Furthermore, age was positively correlated with happiness, suggesting that older individuals tend to report higher levels of well-being."
 format: pdf
 toc: true
 number-sections: true
@@ -37,7 +37,7 @@ In this project, the estimand will be the difference in happiness level between 
 
 The remainder of the paper is structured as follows: following in the introduction in [@sec-intro], [@sec-data] provides an overview of our dataset, variables, and a quick analysis of the data, [@sec-model] discusses the model we chose for our regression, [@sec-results] depicts the calculated values along with any important measurements, and [@sec-discussion] discusses the implications of our results while also suggesting avenues for future research.
 
-# Data {#sec-data}
+# Data {#sec-data} 
 
 ## Data Source and Measurement
 
@@ -69,11 +69,6 @@ Although each of the variables have a different scale, the summary statistics of
 #| echo: false
 #| label: fig-summary
 #| fig-cap: Summary Statistics for World Values Survey
-library(knitr)
-library(kableExtra)
-library(dplyr)
-library(tidyr)
-
 variables_of_interest <- c("National_Pride", "Happiness", "Government_Surveillance", 
                            "Email_Monitoring", "Information_Collection", 
                            "Government_Responsibility", "age")
@@ -90,16 +85,14 @@ summary_stats <- wvsdata %>%
   ), .names = "{.col}_{.fn}"))
 
 summary_stats_long <- summary_stats %>%
-  pivot_longer(cols = everything(), names_to = c("Variable", "Statistic"), names_pattern = "(.+)_(Mean|SD|Median|Q1|Q3|Min|Max)")
+  pivot_longer(
+    cols = everything(),
+    names_to = c("Variable", "Statistic"),
+    names_pattern = "(.+)_(.+)"
+  )
 
-summary_stats_wide <- summary_stats_long %>%
-  pivot_wider(names_from = Statistic, values_from = value)
-
-summary_table <- kable(summary_stats_wide, format = "latex", booktabs = TRUE, 
-                       caption = "Descriptive Statistics for Selected Variables") %>%
-  row_spec(0, bold = TRUE)  
-
-summary_table
+# Check the output
+print(summary_stats_long)
 ```
 
 Initial observations of the summary statistics reveal that the mean happiness level is quite high, averaging to approximately 7.42 as opposed to the expected 5. Furthermore, we see that the median level of happiness is 8, significantly higher than expected. We also notice that national pride is very high, with a mean of 1.64. The interquartile range of 1-2 shows that vast majority of the populace are very proud of their status as Chinese citizens. The support for the various forms of government control seem middling, but it shows that the public is not vehemently opposed to these methods of surveillance. 
@@ -176,7 +169,7 @@ ggplot(wvsdata, aes(x = Age_Group, fill = as.factor(Government_Surveillance))) +
 ```
 Surprisingly, we see that as age increases, a higher proportion of adults in that age group are opposed to government surveillance in public areas. As the question asks about government surveillance in public areas, we can potentially infer citizens may oppose government email/information supervision as those are more private. However, as seen in @fig-compiled, we notice that the support for the collection of information for anybody in China is significantly higher than the other variables. 
 
-# Model {@sec-model}
+# Model {#sec-model}
 
 The potential of using the World Values Survey data to predict happiness is based on the idea that certain key variables, such as attitudes towards governance and societal structures, are able to predict an individual’s level of happiness. Our model will hopefully be able to show how and if specific perceptions on government surveillance acceptance, email monitoring, and information collection are indicative of broader societal satisfaction.
 
@@ -205,7 +198,7 @@ In our study, we employ a multiple regression model to predict happiness levels 
 Our large sample size—approximately 3000 respondents—strengthens the model further. A robust sample size ensures that our parameter estimates are reliable and reduces the likelihood of statistical errors. It also increases the generalizability of our findings, ensuring that our conclusions are not just applicable to a narrow subset of the population but can be extended to China as a whole. Additionally, a larger dataset supports the complexity of our model, allowing us to include multiple predictors without the risk of overfitting, thereby maintaining the model’s integrity and robustness. The overall statistical significance of our test will be examined further later in this study.
 
 
-# Results {@sec-results}
+# Results {#sec-results}
 
 Our results are summarized in @tbl-modelresults.
 
@@ -240,23 +233,32 @@ The model accounts for a modest 4.8% of the variance in happiness scores, as ref
 #| eval: true
 #| warning: false
 #| label: fig-checks
-#| fig-cap: "Happiness Model Checks"
+#| fig-cap: "Happiness Model Posterior Predictive Check"
 library(rstanarm)
 library(bayesplot)
 library(ggplot2)
 
 ppc_dens_overlay(y = wvsdata$Happiness, yrep = posterior_predict(happiness_model))
-
+```
+The posterior predictive check, visualized by @fig-checks, helps us evaluate the fit of our Bayesian model. By overlapping the observed happiness data with the simulated posterior predictive values, this plot illustrates how well our model reproduces the observed outcomes. The congruence between the values signifies that the model adequately captures the central tendency and variability of the actual happiness scores. Notably, if there are significant deviations it could indicate that the model may not fully account for the data's characteristics, prompting us to consider model refinements or additional predictors.
+```{r}
+#| echo: false
+#| eval: true
+#| warning: false
+#| label: fig-trace
+#| fig-cap: MCMC Trace Plot
+library(rstanarm)
+library(bayesplot)
+library(ggplot2)
 mcmc_trace(
   as.array(happiness_model),
   pars = c("(Intercept)", "Government_Surveillance", "Email_Monitoring", "Information_Collection", "National_Pride", "age", "Government_Responsibility")
 )
 ```
-The posterior predictive check, visualized by @fig-checks, helps us evaluate the fit of our Bayesian model. By overlapping the observed happiness data with the simulated posterior predictive values, this plot illustrates how well our model reproduces the observed outcomes. The congruence between the values signifies that the model adequately captures the central tendency and variability of the actual happiness scores. Notably, if there are significant deviations it could indicate that the model may not fully account for the data's characteristics, prompting us to consider model refinements or additional predictors.
 
-The trace plot provides a representation of the Markov Chain Monte Carlo (MCMC) sampling process, essential for evaluating the convergence of the chains. Each parameter's trace, represented by individual lines for each chain, should display a "mixing" behavior, converging to and fluctuating around a common value, without exhibiting trends or periodicity. Such patterns indicate that the chains have reached a stationary distribution, and the samples drawn are likely from the true posterior distribution. If the chains do not converge, this implies that the sampling process has not yet adequately captured the full behaviour of the true distribution, and further iterations or model adjustments may be required to ensure reliable inference.
+The trace plot shown in @fig-trace provides a representation of the Markov Chain Monte Carlo (MCMC) sampling process, essential for evaluating the convergence of the chains. Each parameter's trace, represented by individual lines for each chain, should display a "mixing" behavior, converging to and fluctuating around a common value, without exhibiting trends or periodicity. Such patterns indicate that the chains have reached a stationary distribution, and the samples drawn are likely from the true posterior distribution. If the chains do not converge, this implies that the sampling process has not yet adequately captured the full behaviour of the true distribution, and further iterations or model adjustments may be required to ensure reliable inference.
 
-# Discussion {@sec-discussion}
+# Discussion {#sec-discussion}
 
 ## Model Findings {#sec-first-point}
 
@@ -274,7 +276,7 @@ Future research may also consist of comparisons between different nations that p
 
 \appendix
 
-# Appendix {@sec-appendix}
+# Appendix {#sec-appendix}
 
 ```{r}
 #| echo: false
